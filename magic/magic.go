@@ -8,8 +8,6 @@ package magic
 import "C"
 import (
 	_ "embed" // keep
-	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"unsafe"
@@ -67,22 +65,7 @@ var DefaultMagicFileContents []byte
 
 func NewDefaultCookie() Magic {
 	c := Open(MAGIC_NONE)
-	// write embedded file content to disk so we can read it with libmagic
-	tempFile, err := ioutil.TempFile(os.TempDir(), "magic.mgc")
-	if err != nil {
-		log.Println("WARN: failed to load libmagic definitions file")
-		return c
-	}
-	defer tempFile.Close()
-	_, err = tempFile.Write(DefaultMagicFileContents)
-	if err != nil {
-		log.Println("WARN: failed to load libmagic definitions file")
-		return c
-	}
-	r := Load(c, tempFile.Name())
-	if r > 0 {
-		log.Println("WARN: failed to load libmagic definitions file")
-	}
+	LoadBuffers(c, [][]byte{DefaultMagicFileContents})
 	return c
 }
 
@@ -157,4 +140,13 @@ func Load(cookie Magic, filename string) int {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 	return (int)(C.magic_load((C.magic_t)(cookie), cfilename))
+}
+
+func LoadBuffers(cookie Magic, buffers [][]byte) int {
+	sizes := make([]uint64, len(buffers))
+	for i, b := range buffers {
+		sizes[i] = uint64(len(b))
+	}
+	p := unsafe.Pointer(&buffers[0])
+	return (int)(C.magic_load_buffers((C.magic_t)(cookie), &p, (*C.size_t)(&sizes[0]), (C.size_t)(uint64(len(buffers)))))
 }
