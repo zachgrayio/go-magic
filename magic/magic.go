@@ -68,7 +68,7 @@ var DefaultMagicFileContents []byte
 func NewDefaultCookie() Magic {
 	c := Open(MAGIC_NONE)
 	// write embedded file content to disk so we can read it with libmagic
-	tempFile, err := ioutil.TempFile(os.TempDir(), "example")
+	tempFile, err := ioutil.TempFile(os.TempDir(), "magic.mgc")
 	if err != nil {
 		log.Println("WARN: failed to load libmagic definitions file")
 		return c
