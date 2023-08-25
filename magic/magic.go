@@ -7,6 +7,9 @@ package magic
 */
 import "C"
 import (
+	_ "embed" // keep
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"unsafe"
@@ -57,6 +60,30 @@ var system_mgc_locations = []string{
 	"/usr/share/misc/magic.mgc",
 	"/usr/share/file/magic.mgc",
 	"/usr/share/magic/magic.mgc",
+}
+
+//go:embed magic.mgc
+var DefaultMagicFileContents []byte
+
+func NewDefaultCookie() Magic {
+	c := Open(MAGIC_NONE)
+	// write embedded file content to disk so we can read it with libmagic
+	tempFile, err := ioutil.TempFile(os.TempDir(), "example")
+	if err != nil {
+		log.Println("WARN: failed to load libmagic definitions file")
+		return c
+	}
+	defer tempFile.Close()
+	_, err = tempFile.Write(DefaultMagicFileContents)
+	if err != nil {
+		log.Println("WARN: failed to load libmagic definitions file")
+		return c
+	}
+	r := Load(c, tempFile.Name())
+	if r > 0 {
+		log.Println("WARN: failed to load libmagic definitions file")
+	}
+	return c
 }
 
 /* Find the real magic file location */
